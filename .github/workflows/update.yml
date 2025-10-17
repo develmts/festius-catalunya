@@ -1,0 +1,35 @@
+name: Actualitza calendari festius Catalunya
+
+on:
+  schedule:
+    - cron: "0 5 1 * *"  # Cada 1r dia de mes a les 05:00 UTC
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run update script
+        run: |
+          mkdir -p data
+          python3 scripts/update_calendar.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if ! git diff --cached --quiet; then
+            git commit -m "Actualització automàtica del calendari de festius"
+            git push
+          else
+            echo "Sense canvis detectats"
+          fi
