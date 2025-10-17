@@ -8,7 +8,9 @@ from pathlib import Path
 
 import requests
 
-# Font oficial: ICS complet de la Generalitat
+# ---------------------------------------------------------------------
+# Configuració general
+# ---------------------------------------------------------------------
 URL = (
     "https://analisi.transparenciacatalunya.cat/"
     "download/xxnh-f2kn/text/calendar"
@@ -17,9 +19,9 @@ URL = (
 DATA_DIR = Path("data")
 ICS_LATEST = DATA_DIR / "festes_nacionals_catalunya_latest.ics"
 
-# Patró robust per capturar festes "d'àmbit nacional"
+# Patró robust: permet espais inicials i apòstrofs diferents
 PATTERN = re.compile(
-    r"^SUMMARY:Festa d['’]àmbit nacional\b",
+    r"^\s*SUMMARY:Festa d['’]àmbit nacional\b",
     re.IGNORECASE,
 )
 
@@ -29,8 +31,13 @@ def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     # 1️⃣ Descarrega el fitxer complet
-    resp = requests.get(URL, timeout=30)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(URL, timeout=30)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"❌ Error descarregant el fitxer oficial: {e}")
+        return
+
     ics_lines = resp.text.splitlines()
 
     # 2️⃣ Filtra només els esdeveniments d'àmbit nacional
@@ -39,7 +46,9 @@ def main() -> None:
     keep = False
     count = 0
 
-    for line in ics_lines:
+    for raw_line in ics_lines:
+        line = raw_line.strip()
+
         if line.startswith("BEGIN:VEVENT"):
             current = [line]
             keep = False
@@ -63,6 +72,8 @@ def main() -> None:
         "VERSION:2.0",
         "PRODID:-//develmts//Festius Catalunya Auto//CA",
         "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:Festius oficials de Catalunya",
     ]
     new_ics = header + events + ["END:VCALENDAR"]
     content = "\n".join(new_ics)
@@ -72,10 +83,13 @@ def main() -> None:
     year_path = DATA_DIR / f"festes_nacionals_catalunya_{year}.ics"
     year_path.write_text(content, encoding="utf-8")
 
-    # 5️⃣ Crea o reemplaça el fitxer "latest"
+    # 5️⃣ Crea o reemplaça el fitxer "latest" sincronitzat
     shutil.copyfile(year_path, ICS_LATEST)
 
-    print(f"Actualitzats {count} esdeveniments d'àmbit nacional per a {year}.")
+    print(
+        f"✅ Actualitzats {count} esdeveniments d'àmbit nacional "
+        f"per a {year}. Fitxer: {ICS_LATEST}"
+    )
 
 
 if __name__ == "__main__":
