@@ -2,4 +2,6 @@ BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//develmts//Festius Catalunya Auto//CA
 CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Festius oficials de Catalunya
 END:VCALENDAR
